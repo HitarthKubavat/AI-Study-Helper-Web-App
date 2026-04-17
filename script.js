@@ -1,6 +1,6 @@
 /**
  * AI Study Helper - Main Application Logic
- * Optimized and cleaned code for robustness and performance.
+ * Powered by Google Gemini API
  */
 
 const initApp = () => {
@@ -19,119 +19,223 @@ const initApp = () => {
         themeToggleBtn: document.getElementById('theme-toggle'),
         suggestionsStrip: document.getElementById('suggestions-strip'),
         suggestionsChips: document.getElementById('suggestions-chips'),
+        apiKeyInput: document.getElementById('api-key-input'),
+        apiKeySaveBtn: document.getElementById('api-key-save'),
+        apiKeyToggleBtn: document.getElementById('api-key-toggle'),
+        apiKeyStatus: document.getElementById('api-key-status'),
     };
 
     // Verify all DOM elements exist to prevent silent failures
     if (Object.values(elements).some(el => !el)) {
-        console.error('Core DOM elements missing purely. Application cannot initialize correctly.');
-        return;
+        console.warn('Some DOM elements are missing. Continuing with available elements.');
     }
 
     // --- State ---
     let isGenerating = false;
+    let currentAbortController = null;
 
-    // --- Knowledge Database (Advanced Tutor Edition) ---
-    const database = {
-        // --- PROGRAMMING ---
-        'loop': {
-            category: 'programming',
-            title: 'Loops',
-            definition: 'A mechanism to execute a block of code multiple times based on a condition.',
-            syntax: 'for (let i = 0; i < limit; i++) { ... }',
-            example: 'for (let i = 0; i < 3; i++) {\n  console.log("Iteration " + i);\n}',
-            output: 'Iteration 0\nIteration 1\nIteration 2',
-            keywords: ['for', 'while', 'do-while', 'iteration', 'condition', 'infinite loop'],
-            related: ['array', 'function', 'async', 'jumping statement']
-        },
-        'array': {
-            category: 'programming',
-            title: 'Arrays',
-            definition: 'A high-level, list-like object used to store multiple values in a single variable.',
-            syntax: 'const list = [item1, item2, ...];',
-            example: 'const colors = ["Red", "Green"];\nconsole.log(colors[0]);\nconsole.log(colors.length);',
-            output: 'Red\n2',
-            keywords: ['zero-indexed', 'index', 'length', 'push', 'pop', 'dynamic'],
-            related: ['loop', 'function', 'class']
-        },
-        'async': {
-            category: 'programming',
-            title: 'Async/Await',
-            definition: 'Modern syntax for handling asynchronous operations without nesting multiple callbacks.',
-            syntax: 'async function fetch() {\n  const res = await api();\n}',
-            example: 'async function greet() {\n  console.log("Starting...");\n  await new Promise(r => setTimeout(r, 100));\n  console.log("Done!");\n}\ngreet();',
-            output: 'Starting...\n(Pause)\nDone!',
-            keywords: ['async', 'await', 'Promise', 'callback', 'synchronous', 'try/catch'],
-            related: ['function', 'loop', 'class']
-        },
-        'function': {
-            category: 'programming',
-            title: 'Functions',
-            definition: 'A reusable, self-contained block of code that performs a specific task when called.',
-            syntax: 'function name(params) {\n  return result;\n}',
-            example: 'function multiply(a, b) {\n  return a * b;\n}\nconsole.log(multiply(4, 5));',
-            output: '20',
-            keywords: ['parameter', 'return', 'call', 'invoke', 'scope', 'reusable'],
-            related: ['loop', 'array', 'class', 'async']
-        },
-        'class': {
-            category: 'programming',
-            title: 'Classes (OOP)',
-            definition: 'A blueprint for creating objects, encapsulating data (properties) and behavior (methods) together.',
-            syntax: 'class Animal {\n  constructor(name) {\n    this.name = name;\n  }\n}',
-            example: 'class Dog extends Animal {\n  speak() {\n    console.log(this.name + " barks!");\n  }\n}\nnew Dog("Rex").speak();',
-            output: 'Rex barks!',
-            keywords: ['constructor', 'extends', 'inheritance', 'method', 'object', 'instance'],
-            related: ['function', 'array', 'async']
-        },
-        'jumping statement': {
-            category: 'programming',
-            title: 'Jumping Statements',
-            definition: 'Statements that immediately redirect the flow of execution within loops or functions.',
-            syntax: 'break;     // exit loop\ncontinue;  // skip iteration\nreturn;    // exit function',
-            example: 'for (let i = 0; i < 5; i++) {\n  if (i === 2) continue;\n  if (i === 4) break;\n  console.log(i);\n}',
-            output: '0\n1\n3',
-            keywords: ['break', 'continue', 'return', 'exit', 'skip', 'flow'],
-            related: ['loop', 'function', 'array']
-        },
-        // --- SCIENCE ---
-        'photosynthesis': {
-            category: 'science',
-            title: 'Photosynthesis',
-            explanation: 'The biological process by which plants convert light energy (sunlight) into chemical energy (glucose).',
-            realWorld: 'Think of a leaf as a tiny solar panel that also builds its own batteries to survive.',
-            keywords: ['chlorophyll', 'glucose', 'CO2', 'oxygen', 'sunlight', 'chloroplast'],
-            related: ['relativity', 'inflation', 'blockchain']
-        },
-        'relativity': {
-            category: 'science',
-            title: 'General Relativity',
-            explanation: 'Einstein\'s theory that gravity is not a force between masses, but a curvature of space and time caused by mass and energy.',
-            realWorld: 'Imagine placing a bowling ball on a trampoline; the way it dips is how a planet curves space around it.',
-            keywords: ['gravity', 'space-time', 'curvature', 'mass', 'energy', 'Einstein'],
-            related: ['photosynthesis', 'blockchain', 'inflation']
-        },
-        // --- GENERAL ---
-        'inflation': {
-            category: 'general',
-            title: 'Inflation',
-            explanation: 'An economic concept where the purchasing power of money decreases as prices for goods and services rise.',
-            realWorld: 'If a loaf of bread cost $1 last year and $1.10 today, that 10% increase is inflation.',
-            keywords: ['purchasing power', 'prices', 'interest rates', 'central bank', 'demand', 'supply'],
-            related: ['blockchain', 'relativity', 'photosynthesis']
-        },
-        'blockchain': {
-            category: 'general',
-            title: 'Blockchain',
-            explanation: 'A decentralized, distributed digital ledger that records transactions across many computers securely.',
-            realWorld: 'Like a shared spreadsheet where anyone can see new entries, but no one can ever erase or change old ones.',
-            keywords: ['decentralized', 'ledger', 'cryptography', 'Bitcoin', 'block', 'chain'],
-            related: ['inflation', 'async', 'class']
-        }
+    // ---------------------------------------------------------------
+    // GEMINI API CONFIGURATION
+    // ---------------------------------------------------------------
+    const GEMINI_MODEL = 'gemini-1.5-flash';
+    const GEMINI_ENDPOINT = (key) =>
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
+
+    /**
+     * Retrieves the stored Gemini API key.
+     */
+    const getApiKey = () => {
+        try { return localStorage.getItem('geminiApiKey') || ''; }
+        catch { return ''; }
     };
 
     /**
-     * Get local storage data safely
+     * Saves the Gemini API key to localStorage.
      */
+    const saveApiKey = (key) => {
+        try { localStorage.setItem('geminiApiKey', key.trim()); }
+        catch (e) { console.warn('Could not save API key.', e); }
+    };
+
+    // Load saved key into the input field on boot
+    if (elements.apiKeyInput) {
+        const savedKey = getApiKey();
+        if (savedKey) {
+            elements.apiKeyInput.value = savedKey;
+            if (elements.apiKeyStatus) {
+                elements.apiKeyStatus.textContent = '✅ API key loaded. Ready to generate!';
+                elements.apiKeyStatus.className = 'api-key-note success';
+            }
+        }
+    }
+
+    // Save key button
+    if (elements.apiKeySaveBtn) {
+        elements.apiKeySaveBtn.addEventListener('click', () => {
+            const key = elements.apiKeyInput.value.trim();
+            if (!key) {
+                elements.apiKeyStatus.textContent = '⚠️ Please paste a valid API key first.';
+                elements.apiKeyStatus.className = 'api-key-note warning';
+                return;
+            }
+            saveApiKey(key);
+            elements.apiKeyStatus.textContent = '✅ API key saved! Ready to generate.';
+            elements.apiKeyStatus.className = 'api-key-note success';
+            elements.apiKeyInput.blur();
+        });
+    }
+
+    // Toggle key visibility
+    if (elements.apiKeyToggleBtn) {
+        elements.apiKeyToggleBtn.addEventListener('click', () => {
+            const isHidden = elements.apiKeyInput.type === 'password';
+            elements.apiKeyInput.type = isHidden ? 'text' : 'password';
+            elements.apiKeyToggleBtn.setAttribute('aria-label', isHidden ? 'Hide API key' : 'Show API key');
+        });
+    }
+
+    // ---------------------------------------------------------------
+    // GEMINI API CALL
+    // ---------------------------------------------------------------
+
+    /**
+     * Builds a structured prompt asking Gemini to return JSON.
+     */
+    const buildPrompt = (topic) => `
+You are an expert study tutor. Explain the concept: "${topic}".
+
+Return ONLY a valid JSON object (no markdown fences, no extra text) with this exact structure:
+{
+  "title": "<Clear topic title>",
+  "definition": "<2-3 sentence plain-language definition or explanation>",
+  "points": ["<3 concise key points>"],
+  "example": "<One clear, concrete example or real-world analogy. If programming, include a code snippet. Otherwise, use plain text. If no example applies, return null>",
+  "keywords": ["<5-7 key terms>"]
+}
+`;
+
+    /**
+     * Calls the Gemini API and returns parsed JSON data.
+     */
+    const callGeminiApi = async (topic, abortSignal) => {
+        const apiKey = getApiKey();
+        if (!apiKey) {
+            throw new Error('NO_API_KEY');
+        }
+
+        const response = await fetch(GEMINI_ENDPOINT(apiKey), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: abortSignal,
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: buildPrompt(topic) }] }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 1024,
+                }
+            })
+        });
+
+        if (!response.ok) {
+            const errBody = await response.json().catch(() => ({}));
+            const msg = errBody?.error?.message || `HTTP ${response.status}`;
+            throw new Error(msg);
+        }
+
+        const data = await response.json();
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        // Strip accidental markdown code fences if Gemini adds them
+        const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+        return JSON.parse(cleaned);
+    };
+
+    // ---------------------------------------------------------------
+    // HTML RENDERING FROM AI RESPONSE
+    // ---------------------------------------------------------------
+
+    /**
+     * Highlights important keywords in a piece of text.
+     */
+    const highlightKeywords = (text, keywords) => {
+        if (!keywords || keywords.length === 0) return text;
+        const escaped = keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        const regex = new RegExp(`\\b(${escaped.join('|')})\\b`, 'gi');
+        return text.replace(regex, '<span class="keyword-highlight">$1</span>');
+    };
+
+    // SVG icons (Simplified for the new layout)
+    const iconDef = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`;
+    const iconKey = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>`;
+    const iconEx = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1.5.5 2.8 1.5 3.5.76.76 1.23 1.52 1.4 2.5"></path></svg>`;
+
+    /**
+     * Renders structured AI JSON data into rich HTML.
+     */
+    const renderAiResponse = (ai, topic) => {
+        const keywords = ai.keywords || [];
+
+        const definitionText = highlightKeywords(escapeHtml(ai.definition || ''), keywords);
+        const exampleText = highlightKeywords(escapeHtml(ai.example || ''), keywords);
+
+        const pointsHtml = (ai.points || [])
+            .map(p => `<li class="bullet-point">${highlightKeywords(escapeHtml(p), keywords)}</li>`).join('');
+
+        return `
+            <div class="generated-content fade-in" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div class="header-section" style="border-bottom: 2px solid var(--input-border); padding-bottom: 1rem;">
+                    <div class="ai-powered-badge">✦ Gemini AI</div>
+                    <h3 class="generated-title" style="margin-bottom: 0;">
+                        <span class="primary-text" style="font-size: 1.5rem;">${escapeHtml(ai.title || topic)}</span>
+                    </h3>
+                </div>
+
+                <div class="content-block" style="margin-bottom: 0;">
+                    <h4 class="block-title"><span class="icon-wrapper">${iconDef}</span> Definition</h4>
+                    <div class="block-text def-box" style="font-size: 1.05rem;">${definitionText}</div>
+                </div>
+
+                ${pointsHtml ? `
+                <div class="content-block" style="margin-bottom: 0;">
+                    <h4 class="block-title"><span class="icon-wrapper">${iconKey}</span> Key points</h4>
+                    <ul class="block-list" style="padding-left: 1.5rem;">${pointsHtml}</ul>
+                </div>` : ''}
+
+                ${ai.example ? `
+                <div class="content-block" style="margin-bottom: 0;">
+                    <h4 class="block-title"><span class="icon-wrapper">${iconEx}</span> Example</h4>
+                    <div class="block-text ex-box" style="white-space: pre-wrap;">${exampleText}</div>
+                </div>` : ''}
+            </div>
+        `;
+    };
+
+    /**
+     * Renders an inline error card inside the output area.
+     */
+    const renderErrorCard = (message) => {
+        return `
+            <div class="error-card fade-in">
+                <div class="error-icon">⚠️</div>
+                <h4>Something went wrong</h4>
+                <p>${escapeHtml(message)}</p>
+            </div>
+        `;
+    };
+
+    /**
+     * Safely escapes HTML special characters.
+     */
+    const escapeHtml = (str) => {
+        if (typeof str !== 'string') return '';
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
     const getStorageData = (key, defaultVal) => {
         try {
             return JSON.parse(localStorage.getItem(key)) || defaultVal;
@@ -172,118 +276,25 @@ const initApp = () => {
         setStorageData('aiTopicCache', cache);
     };
 
-    /**
-     * Highlights important keywords in a piece of text.
-     */
-    const highlightKeywords = (text, keywords) => {
-        if (!keywords || keywords.length === 0) return text;
-        const escaped = keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-        const regex = new RegExp(`\\b(${escaped.join('|')})\\b`, 'gi');
-        return text.replace(regex, '<span class="keyword-highlight">$1</span>');
-    };
+
 
     /**
-     * Generates a structured HTML string based on the given topic and its category.
+     * Renders related topic suggestion chips from AI response data.
      */
-    const getDummyExplanation = (topic) => {
-        const topicLower = topic.toLowerCase();
-        const matchKey = Object.keys(database).find(key => topicLower.includes(key));
-        
-        const data = matchKey ? database[matchKey] : {
-            category: 'general',
-            title: 'Topic Unknown',
-            explanation: `I'm still learning about "${topic}". Try asking about <strong>coding</strong> (loops, async), <strong>science</strong> (relativity, photosynthesis), or <strong>economics</strong> (inflation).`,
-            realWorld: 'Think of this as an opportunity for us both to research further!',
-            keywords: [],
-            related: Object.keys(database).slice(0, 4),
-            points: ['Double-check the spelling.', 'Try broader terms.']
-        };
-
-        const category = data.category || 'general';
-        const keywords = data.keywords || [];
-        const pointsHtml = (data.points || [
-            'Pay attention to the definition for the core concept.',
-            `Explore related topics to deepen your understanding.`
-        ]).map(p => `<li>${highlightKeywords(p, keywords)}</li>`).join('');
-        
-        // Icons
-        const iconDef = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`;
-        const iconEx = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1.5.5 2.8 1.5 3.5.76.76 1.23 1.52 1.4 2.5"></path></svg>`;
-        const iconCode = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m18 16 4-4-4-4"></path><path d="m6 8-4 4 4 4"></path><path d="m14.5 4-5 16"></path></svg>`;
-        const iconKey = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>`;
-
-        let specificContent = '';
-
-        if (category === 'programming') {
-            specificContent = `
-                <div class="content-block">
-                    <h4 class="block-title"><span class="icon-wrapper">${iconCode}</span> Syntax</h4>
-                    <pre><code class="inline-code">${data.syntax}</code></pre>
-                </div>
-                <div class="content-block">
-                    <h4 class="block-title"><span class="icon-wrapper">${iconCode}</span> Code Example</h4>
-                    <pre><code class="inline-code">${data.example}</code></pre>
-                    <div class="output-box">
-                        ${(data.output || '').split('\n').map(l => `<span class="output-line">${l}</span>`).join('')}
-                    </div>
-                </div>
-            `;
-        } else {
-            specificContent = `
-                <div class="content-block">
-                    <h4 class="block-title"><span class="icon-wrapper">${iconEx}</span> Real-World Example</h4>
-                    <div class="block-text ex-box">${highlightKeywords(data.realWorld, keywords)}</div>
-                </div>
-            `;
-        }
-
-        const definitionText = highlightKeywords(data.definition || data.explanation, keywords);
-
-        return `
-            <div class="generated-content fade-in">
-                <div class="category-badge badge-${category}">${category}</div>
-                <h3 class="generated-title">
-                    Subject: <span class="primary-text">${data.title}</span>
-                </h3>
-                <div class="content-block">
-                    <h4 class="block-title"><span class="icon-wrapper">${iconDef}</span> ${category === 'programming' ? 'Definition' : 'Explanation'}</h4>
-                    <div class="block-text def-box">${definitionText}</div>
-                </div>
-                ${specificContent}
-                <div class="content-block">
-                    <h4 class="block-title"><span class="icon-wrapper">${iconKey}</span> Key Takeaways</h4>
-                    <ul class="block-list">${pointsHtml}</ul>
-                </div>
-                <div class="tutor-note">
-                    💡 Great learning! Every expert was once a beginner — keep exploring.
-                </div>
-            </div>
-        `;
-    };
-
-    /**
-     * Renders related topic suggestion chips.
-     */
-    const renderSuggestions = (matchKey) => {
-        const data = matchKey ? database[matchKey] : null;
-        const related = data?.related || [];
-
-        if (related.length === 0) {
+    const renderSuggestions = (related = []) => {
+        if (!related || related.length === 0) {
             elements.suggestionsStrip.classList.add('hidden');
             return;
         }
 
-        const categoryIcons = { programming: '💻', science: '🔬', general: '💡' };
         elements.suggestionsChips.innerHTML = '';
         const frag = document.createDocumentFragment();
-        related.forEach(key => {
-            const item = database[key];
-            if (!item) return;
+        related.forEach(title => {
             const chip = document.createElement('button');
             chip.className = 'suggestion-chip';
-            chip.setAttribute('aria-label', `Explore ${item.title}`);
-            chip.dataset.topic = item.title;
-            chip.innerHTML = `<span class="suggestion-chip-icon" aria-hidden="true">${categoryIcons[item.category] || '📖'}</span>${item.title}`;
+            chip.setAttribute('aria-label', `Explore ${title}`);
+            chip.dataset.topic = title;
+            chip.innerHTML = `<span class="suggestion-chip-icon" aria-hidden="true">📖</span>${escapeHtml(title)}`;
             frag.appendChild(chip);
         });
         elements.suggestionsChips.appendChild(frag);
@@ -292,24 +303,33 @@ const initApp = () => {
 
     /**
      * Core generation logic. Accepts forceRefresh to bypass cache.
+     * Calls the real Gemini API.
      */
-    const runGeneration = (topic, forceRefresh = false) => {
+    const runGeneration = async (topic, forceRefresh = false) => {
+        if (isGenerating) return;
+
+        // Cache hit (skip API call)
         if (!forceRefresh) {
             const cachedContent = getCachedTopic(topic);
             if (cachedContent) {
                 elements.outputArea.className = 'output-area filled';
                 elements.outputArea.innerHTML = cachedContent;
                 elements.actionButtons.classList.remove('hidden');
-                // Still render suggestions from cache
-                const matchKey = Object.keys(database).find(k => topic.toLowerCase().includes(k));
-                renderSuggestions(matchKey);
+                // Re-render suggestions from cached HTML chips
+                const relatedFromCache = [...elements.outputArea.querySelectorAll('.ai-related-chip')]
+                    .map(c => c.dataset.topic).filter(Boolean);
+                renderSuggestions(relatedFromCache);
                 return;
             }
         }
 
+        // Cancel any previous in-flight request
+        if (currentAbortController) currentAbortController.abort();
+        currentAbortController = new AbortController();
+
         isGenerating = true;
         const originalBtnContent = elements.generateBtn.innerHTML;
-        elements.generateBtn.innerHTML = '<span class="loader" aria-hidden="true"></span> Generating...';
+        elements.generateBtn.innerHTML = '<span class="loader" aria-hidden="true"></span> Generating…';
         elements.generateBtn.disabled = true;
         if (elements.regenerateBtn) elements.regenerateBtn.disabled = true;
 
@@ -318,35 +338,61 @@ const initApp = () => {
         elements.outputArea.className = 'output-area empty';
         elements.outputArea.innerHTML = `
             <div class="placeholder">
-                <p>Analyzing <strong class="primary-text">${topic}</strong><span class="loading-dots"></span></p>
+                <p>Asking Gemini about <strong class="primary-text">${escapeHtml(topic)}</strong><span class="loading-dots"></span></p>
             </div>
         `;
 
-        setTimeout(() => {
-            const matchKey = Object.keys(database).find(k => topic.toLowerCase().includes(k));
-            const explanation = getDummyExplanation(topic);
+        try {
+            const aiData = await callGeminiApi(topic, currentAbortController.signal);
+            const html = renderAiResponse(aiData, topic);
 
-            // Smooth transition: fade out → inject → slide up
             elements.outputArea.classList.add('filling');
             requestAnimationFrame(() => {
                 setTimeout(() => {
                     elements.outputArea.className = 'output-area filled';
-                    elements.outputArea.innerHTML = explanation;
-
-                    // Cache the fresh content
-                    setCachedTopic(topic, explanation);
-
+                    elements.outputArea.innerHTML = html;
+                    setCachedTopic(topic, html);
                     elements.actionButtons.classList.remove('hidden');
-                    elements.generateBtn.innerHTML = originalBtnContent;
-                    elements.generateBtn.disabled = false;
-                    if (elements.regenerateBtn) elements.regenerateBtn.disabled = false;
-                    isGenerating = false;
-
-                    // Render related suggestions
-                    renderSuggestions(matchKey);
-                }, 120); // short delay for filling class to render
+                    renderSuggestions(aiData.related || []);
+                }, 100);
             });
-        }, 750);
+
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                // Silently cancelled
+                elements.outputArea.className = 'output-area empty';
+                elements.outputArea.innerHTML = `<div class="placeholder"><p>Generation cancelled.</p></div>`;
+            } else if (err.message === 'NO_API_KEY') {
+                elements.outputArea.className = 'output-area filled';
+                elements.outputArea.innerHTML = renderErrorCard(
+                    'No API key found. Please paste your Gemini API key in the field above and click Save Key.');
+            } else {
+                elements.outputArea.className = 'output-area filled';
+                elements.outputArea.innerHTML = renderErrorCard(
+                    `Gemini API error: ${err.message}`);
+            }
+        } finally {
+            isGenerating = false;
+            elements.generateBtn.innerHTML = originalBtnContent;
+            elements.generateBtn.disabled = false;
+            if (elements.regenerateBtn) elements.regenerateBtn.disabled = false;
+        }
+    };
+
+    /**
+     * Validates the input topic string.
+     * Returns an error message if invalid, or null if valid.
+     */
+    const validateTopicContent = (rawTopic) => {
+        const topic = typeof rawTopic === 'string' ? rawTopic.trim() : "";
+        if (!topic) return "Topic cannot be empty.";
+        if (topic.length < 2) return "Topic must be at least 2 characters long.";
+        if (topic.length > 100) return "Topic is too long (maximum 100 characters).";
+
+        // Ensure there is at least one letter or number
+        if (!/[a-zA-Z0-9]/.test(topic)) return "Topic must contain at least one alphanumeric character.";
+
+        return null; // Valid
     };
 
     /**
@@ -354,17 +400,55 @@ const initApp = () => {
      */
     const handleGenerate = () => {
         const topic = elements.topicInput.value.trim();
-        
-        if (!topic) {
+
+        const validationError = validateTopicContent(topic);
+        if (validationError) {
             elements.topicInput.focus();
             elements.topicInput.classList.add('shake-anim');
             setTimeout(() => elements.topicInput.classList.remove('shake-anim'), 300);
+
+            // Show error in output area
+            elements.outputArea.className = 'output-area filled';
+            elements.outputArea.innerHTML = renderErrorCard(`Invalid Input: ${validationError}`);
+            elements.actionButtons.classList.add('hidden');
+            elements.suggestionsStrip.classList.add('hidden');
             return;
         }
 
         if (isGenerating) return;
         runGeneration(topic);
     };
+
+    // --- Basic Unit Tests ---
+    const runValidatorTests = () => {
+        let passed = 0;
+        let failed = 0;
+
+        const assertEqual = (actual, expected, testName) => {
+            if (actual === expected) {
+                console.log(`✅ [PASS] ${testName}`);
+                passed++;
+            } else {
+                console.error(`❌ [FAIL] ${testName} | Expected: "${expected}", Got: "${actual}"`);
+                failed++;
+            }
+        };
+
+        console.log("--- Running Unit Tests for validateTopicContent ---");
+
+        assertEqual(validateTopicContent(""), "Topic cannot be empty.", "Empty string test");
+        assertEqual(validateTopicContent("   "), "Topic cannot be empty.", "Whitespace only test");
+        assertEqual(validateTopicContent("A"), "Topic must be at least 2 characters long.", "Single character test");
+        assertEqual(validateTopicContent("!@#$%^"), "Topic must contain at least one alphanumeric character.", "Only special characters test");
+        assertEqual(validateTopicContent("A".repeat(101)), "Topic is too long (maximum 100 characters).", "Too long string test");
+        assertEqual(validateTopicContent("Quantum Computing"), null, "Valid typical topic");
+        assertEqual(validateTopicContent("C++"), null, "Valid topic with special characters");
+
+        console.log(`--- Test Summary: ${passed} passed, ${failed} failed ---`);
+    };
+
+    // Expose globally for manual execution in console
+    window.runAppTests = runValidatorTests;
 
     // --- Utilities ---
     const formatTime = (date) => {
@@ -433,7 +517,7 @@ const initApp = () => {
 
             const groupWrapper = document.createElement('div');
             groupWrapper.className = 'history-group-wrapper expanded';
-            
+
             const groupList = document.createElement('div');
             groupList.className = 'history-group-list';
 
@@ -479,14 +563,14 @@ const initApp = () => {
      */
     elements.savedTopicsList.addEventListener('click', (e) => {
         const target = e.target;
-        
+
         // Handle Delete
         const deleteBtn = target.closest('.delete-note-btn');
         if (deleteBtn) {
             e.stopPropagation();
             const card = deleteBtn.closest('.saved-topic-item');
             const topicName = card.querySelector('.saved-topic-title span:last-child').textContent;
-            
+
             if (window.confirm(`Are you sure you want to delete your note on "${topicName}"?`)) {
                 let savedNotes = getStorageData('aiStudyNotes', []);
                 savedNotes = savedNotes.filter(n => n.topic !== topicName);
@@ -515,7 +599,7 @@ const initApp = () => {
         const contentWrapper = card.querySelector('.saved-topic-content-wrapper');
         const icon = card.querySelector('.expand-icon');
         const isExpanded = contentWrapper.classList.contains('expanded');
-        
+
         if (isExpanded) {
             contentWrapper.classList.remove('expanded');
             icon.style.transform = 'rotate(0deg)';
@@ -531,7 +615,7 @@ const initApp = () => {
         const wrapper = groupBtn.nextElementSibling;
         const icon = groupBtn.querySelector('.group-expand-icon');
         const isExpanded = wrapper.classList.contains('expanded');
-        
+
         if (isExpanded) {
             wrapper.classList.remove('expanded');
             groupBtn.setAttribute('aria-expanded', 'false');
@@ -586,30 +670,30 @@ const initApp = () => {
     const saveCurrentNote = () => {
         const currentTopic = elements.topicInput.value.trim();
         const currentContent = elements.outputArea.innerHTML;
-        
+
         if (!currentTopic || elements.outputArea.classList.contains('empty')) return;
 
         let savedNotes = getStorageData('aiStudyNotes', []);
         // Avoid duplicates
         savedNotes = savedNotes.filter(n => n.topic.toLowerCase() !== currentTopic.toLowerCase());
-        
+
         savedNotes.unshift({
             topic: currentTopic,
             content: currentContent,
             timestamp: new Date().toISOString()
         });
-        
+
         setStorageData('aiStudyNotes', savedNotes);
-        
+
         const originalBtnContent = elements.saveBtn.innerHTML;
         elements.saveBtn.innerHTML = '<span class="btn-icon" aria-hidden="true">✅</span> Saved!';
         elements.saveBtn.disabled = true;
-        
-        setTimeout(() => { 
-            elements.saveBtn.innerHTML = originalBtnContent; 
+
+        setTimeout(() => {
+            elements.saveBtn.innerHTML = originalBtnContent;
             elements.saveBtn.disabled = false;
         }, 2000);
-        
+
         renderSavedTopics();
     };
 
@@ -635,7 +719,7 @@ const initApp = () => {
 
     // --- Main Event Listeners ---
     elements.generateBtn.addEventListener('click', handleGenerate);
-    
+
     elements.topicInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
             handleGenerate();
@@ -694,6 +778,19 @@ const initApp = () => {
         elements.outputArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
 
+    // --- AI Related Chip Clicks (inside output area) ---
+    elements.outputArea.addEventListener('click', (e) => {
+        const chip = e.target.closest('.ai-related-chip');
+        if (!chip) return;
+        const topic = chip.dataset.topic;
+        if (!topic) return;
+        elements.topicInput.value = topic;
+        handleResize();
+        runGeneration(topic);
+        elements.topicInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
+
     elements.themeToggleBtn.addEventListener('click', () => {
         const isDark = !document.body.classList.contains('dark');
         applyTheme(isDark);
@@ -703,11 +800,11 @@ const initApp = () => {
     let savedTheme = 'light';
     try {
         savedTheme = localStorage.getItem('aiStudyTheme');
-    } catch {}
+    } catch { }
 
     const wantsDark = savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
     applyTheme(wantsDark);
-    
+
     renderSavedTopics();
     elements.topicInput.focus();
 

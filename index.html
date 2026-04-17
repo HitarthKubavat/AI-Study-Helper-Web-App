@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Study Helper</title>
+    <meta name="description" content="AI Study Helper - Generate simple explanations for complex topics.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=4">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="theme-switch-wrapper">
+                <button id="theme-toggle" class="theme-switch" aria-label="Switch to Dark Mode" data-tooltip="Switch to Dark Mode">
+                    <span class="switch-track">
+                        <span class="switch-icon moon">🌙</span>
+                        <span class="switch-icon sun">☀️</span>
+                    </span>
+                    <span class="switch-thumb"></span>
+                </button>
+            </div>
+            <h1>🧠 AI Study Helper</h1>
+            <p class="subtitle">Enter a subject or concept to get a clear explanation.</p>
+        </header>
+
+        <main>
+            <div class="input-section">
+                <label for="topic-input" class="sr-only">Enter a topic</label>
+                <textarea id="topic-input" placeholder="e.g., Quantum Computing, Photosynthesis..." autocomplete="off" aria-required="true" rows="1"></textarea>
+                <button id="generate-btn" tabindex="0">
+                    <span>Generate Explanation</span>
+                    <span class="btn-icon" aria-hidden="true">✨</span>
+                </button>
+            </div>
+
+            <!-- Changed to section and added aria-live to broadcast changes to screenreaders automatically -->
+            <section class="output-section" aria-live="polite" aria-atomic="true">
+                <div id="output-area" class="output-area empty">
+                    <div class="placeholder">
+                        <svg class="placeholder-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <p>Your explanation will appear here</p>
+                    </div>
+                </div>
+                
+                <div class="action-buttons hidden" id="action-buttons">
+                    <button class="btn-secondary btn-outline" id="clear-btn" aria-label="Clear output">
+                        <span class="btn-icon" aria-hidden="true">🗑️</span> Clear
+                    </button>
+                    <button class="btn-secondary btn-outline" id="copy-btn" aria-label="Copy explanation to clipboard">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        Copy
+                    </button>
+                    <button class="btn-secondary btn-outline" id="regenerate-btn" aria-label="Regenerate explanation">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                        Regenerate
+                    </button>
+                    <button class="btn-secondary" id="save-btn" aria-label="Save current note to history">
+                        <span class="btn-icon" aria-hidden="true">💾</span> Save Note
+                    </button>
+                </div>
+            </section>
+
+            <!-- Related Topics Suggestions -->
+            <div class="suggestions-strip hidden" id="suggestions-strip" aria-label="Related topics">
+                <p class="suggestions-label">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+                    Explore related topics:
+                </p>
+                <div class="suggestions-chips" id="suggestions-chips"></div>
+            </div>
+        </main>
+
+        <section class="saved-topics-section hidden" id="saved-topics-section" aria-labelledby="history-heading">
+            <h3 class="section-title" id="history-heading">📚 Saved Notes</h3>
+            <div id="saved-topics-list" class="saved-topics-list">
+                <!-- Saved items injected via DocumentFragment -->
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js?v=4"></script>
+</body>
+</html>
